@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 Bash
 
-streamlit run app.py
+streamlit run ui/app.py
 👥 小组分工
 成员 A (组长): 负责总体架构搭建、pose_module.py 核心引擎开发。
 
