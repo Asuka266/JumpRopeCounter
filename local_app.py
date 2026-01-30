@@ -29,22 +29,22 @@ def main():
             print("错误：无法获取摄像头画面")
             break
 
-        # 画面预处理：镜像翻转（像照镜子一样更自然）并调整大小
+        # 画面预处理：镜像翻转并调整大小
         img = cv2.flip(img, 1)
         img = cv2.resize(img, (1080, 720))
 
-        # 运行 MediaPipe 识别
+        # 运行MediaPipe
         img = detector.find_pose(img)
         lm_list = detector.get_landmarks(img)
 
-        # 只有看到人才计算逻辑
+        # 只有看到人才执行
         if len(lm_list) != 0:
             if current_mode == "Squat":
-                # 执行你的深蹲算法
+                # 执行深蹲算法
                 count, feedback = squat_tool.do_squat(detector, img)
                 color = (255, 0, 0)  # 蓝色
             else:
-                # 执行你的俯卧撑算法
+                # 执行俯卧撑算法
                 count, feedback = pushup_tool.do_push(detector, img)
                 color = (0, 255, 0)  # 绿色
 
@@ -53,7 +53,7 @@ def main():
             cv2.putText(img, f"Count: {count}", (40, 120), cv2.FONT_HERSHEY_SIMPLEX, 2, color, 3)
             cv2.putText(img, f"Feedback: {feedback}", (40, 190), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-        # 5. 显示 FPS (帧率)
+        # 显示 FPS
         c_time = time.time()
         fps = 1 / (c_time - p_time)
         p_time = c_time
@@ -62,7 +62,7 @@ def main():
         # 刷新画面
         cv2.imshow("Local Debugging Window", img)
 
-        # 7. 键盘监听
+        # 对应按键切换模式
         key = cv2.waitKey(1)
         if key & 0xFF == ord('q') or key & 0xFF == ord('Q'):
             break

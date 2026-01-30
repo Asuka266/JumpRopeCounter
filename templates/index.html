@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>AI 健身助手</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; }
+        .container { margin-top: 20px; }
+        .video-box { border: 5px solid #333; border-radius: 10px; display: inline-block; }
+        .controls { margin: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 10px; border-radius: 5px; border: none; background: #007bff; color: white; }
+        button:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
+    <h1>AI 运动计数器</h1>
 
+    <div class="controls">
+        <button onclick="changeMode('Squat')">深蹲模式</button>
+        <button onclick="changeMode('Pushup')">俯卧撑模式</button>
+        <button onclick="changeMode('Jump')">跳绳模式</button>
+    </div>
+
+    <div class="container">
+        <div class="video-box">
+            <img src="{{ url_for('video_feed') }}" width="800">
+        </div>
+    </div>
+
+    <script>
+        function changeMode(mode) {
+            fetch('/set_mode/' + mode)
+                .then(response => response.json())
+                .then(data => console.log("模式切换为: " + data.mode));
+        }
+    </script>
 </body>
 </html>
