@@ -2,7 +2,6 @@ import cv2
 import mediapipe as mp
 import math
 
-# 在类内部定义常用索引
 # 定义各个身体部位的索引
 LEFT_HIP = 23
 RIGHT_HIP = 24
