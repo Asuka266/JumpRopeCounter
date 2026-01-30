@@ -1,38 +1,160 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>AI 健身助手</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JumpRopeCounter - 实时健身监测</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f2f5; }
-        .container { margin-top: 20px; }
-        .video-box { border: 5px solid #333; border-radius: 10px; display: inline-block; }
-        .controls { margin: 20px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 10px; border-radius: 5px; border: none; background: #007bff; color: white; }
-        button:hover { background: #0056b3; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            overflow: hidden;
+        }
+
+        /* 成员 C 要求的布局：左右分割 */
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 左侧：视频流区域 */
+        .video-container {
+            flex: 1.4;
+            background-color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-right: 2px solid #334155;
+        }
+
+        #video-feed {
+            height: 90%;
+            width: auto;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 右侧：大数字展示区域 */
+        .stats-container {
+            flex: 0.6;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--card-bg);
+            padding: 40px;
+        }
+
+        .label {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: -10px;
+        }
+
+        /* 成员 C 要求：大字体显示数字 */
+        #count-display {
+            font-size: 15rem;
+            font-weight: 900;
+            color: var(--accent-color);
+            line-height: 1;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 10px 15px rgba(0,0,0,0.2);
+        }
+
+        /* 反馈系统样式 */
+        #feedback-msg {
+            font-size: 2.5rem;
+            font-weight: 700;
+            padding: 15px 40px;
+            border-radius: 100px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .status-active {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--success-color);
+            border: 3px solid var(--success-color);
+        }
+
+        .status-paused {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning-color);
+            border: 3px solid var(--warning-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <h1>AI 运动计数器</h1>
-
-    <div class="controls">
-        <button onclick="changeMode('Squat')">深蹲模式</button>
-        <button onclick="changeMode('Pushup')">俯卧撑模式</button>
-        <button onclick="changeMode('Jump')">跳绳模式</button>
-    </div>
 
     <div class="container">
-        <div class="video-box">
-            <img src="{{ url_for('video_feed') }}" width="800">
+        <!-- 左侧：实时视频流 (OpenCV Numpy 数组转换后的结果) -->
+        <div class="video-container">
+            <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+        </div>
+
+        <!-- 右侧：数据与反馈 -->
+        <div class="stats-container">
+            <div class="label">Total Count</div>
+            <div id="count-display">0</div>
+
+            <!-- 反馈系统提示 -->
+            <div id="feedback-msg" class="status-active">READY</div>
         </div>
     </div>
 
     <script>
-        function changeMode(mode) {
-            fetch('/set_mode/' + mode)
+        /**
+         * 实时刷新：通过轮询后端 /get_stats 接口获取成员 B 计算的数据
+         */
+        function updateDashboard() {
+            fetch('/get_stats')
                 .then(response => response.json())
-                .then(data => console.log("模式切换为: " + data.mode));
+                .then(data => {
+                    // 更新数字
+                    const countEl = document.getElementById('count-display');
+                    countEl.innerText = data.count;
+
+                    // 更新反馈系统内容与样式
+                    const feedbackEl = document.getElementById('feedback-msg');
+
+                    // 对齐成员 B 可能传回的状态信号
+                    if (data.status === "Keep going!" || data.status === "active") {
+                        feedbackEl.innerText = "Keep going!";
+                        feedbackEl.className = "status-active";
+                    } else {
+                        feedbackEl.innerText = data.status || "Paused";
+                        feedbackEl.className = "status-paused";
+                    }
+                })
+                .catch(err => console.error("Error fetching stats:", err));
         }
+
+        // 每 100 毫秒刷新一次数据，确保数字与视频流同步
+        setInterval(updateDashboard, 100);
     </script>
 </body>
 </html>
