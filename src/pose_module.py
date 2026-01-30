@@ -3,10 +3,17 @@ import mediapipe as mp
 import math
 
 # 在类内部定义常用索引
+# 定义各个身体部位的索引
 LEFT_HIP = 23
 RIGHT_HIP = 24
 LEFT_ANKLE = 27
 RIGHT_ANKLE = 28
+LEFT_SHOULDER = 11
+RIGHT_SHOULDER = 12
+LEFT_ELBOW = 13
+RIGHT_ELBOW = 14
+LEFT_WRIST = 15
+RIGHT_WRIST = 16
 
 class PoseDetector:
     def __init__(self, detection_con=0.5, track_con=0.5):
@@ -49,7 +56,6 @@ class PoseDetector:
             if angle < 0: angle += 360
             if angle > 180: angle = 360 - angle
 
-            # 在图上画出角度值，增加专业感
             # 在图上画出角度值
             if draw:
                 cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50),
