@@ -5,6 +5,8 @@ import math
 # 定义各个身体部位的索引
 LEFT_HIP = 23
 RIGHT_HIP = 24
+LEFT_KNEE = 25
+RIGHT_KNEE = 26
 LEFT_ANKLE = 27
 RIGHT_ANKLE = 28
 LEFT_SHOULDER = 11
