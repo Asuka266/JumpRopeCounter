@@ -16,35 +16,34 @@ RIGHT_ELBOW = 14
 LEFT_WRIST = 15
 RIGHT_WRIST = 16
 
-class PoseDetector:
+class pose_detector:
     def __init__(self, detection_con=0.5, track_con=0.5):
-        # 1. 初始化 MediaPipe 核心模型
+        # 初始化MediaPipe
         self.mp_draw = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(min_detection_confidence=detection_con,
                                       min_tracking_confidence=track_con)
 
     def find_pose(self, img, draw=True):
-        """给成员 C 用：在画面上画出人体骨架"""
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # 具体识别人物
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)# 颜色空间转换
         self.results = self.pose.process(img_rgb)
         if self.results.pose_landmarks and draw:
             self.mp_draw.draw_landmarks(img, self.results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
         return img
 
     def get_landmarks(self, img):
-        """给成员 B 用：提取 33 个关键点的像素坐标"""
+        # 将MediaPipe得到的数据转化为具体的像素坐标
         self.lm_list = []
         if self.results and self.results.pose_landmarks:
             for id, lm in enumerate(self.results.pose_landmarks.landmark):
                 h, w, c = img.shape
-                # 将 0-1 的相对比例换算成实际像素坐标
+                # 将0-1的相对比例换算成实际像素坐标
                 cx, cy = int(lm.x * w), int(lm.y * h)
                 self.lm_list.append([id, cx, cy])
         return self.lm_list
 
     def find_angle(self, img, p1, p2, p3, draw=True):
-        """含金量功能：计算身体部位角度（如膝盖弯曲度）"""
         if len(self.lm_list) != 0:
             # 获取三个点的坐标
             x1, y1 = self.lm_list[p1][1:]
@@ -54,8 +53,10 @@ class PoseDetector:
             # 计算角度
             angle = math.degrees(math.atan2(y3 - y2, x3 - x2) -
                                  math.atan2(y1 - y2, x1 - x2))
-            if angle < 0: angle += 360
-            if angle > 180: angle = 360 - angle
+            if angle < 0:
+                angle += 360
+            if angle > 180:
+                angle = 360 - angle
 
             # 在图上画出角度值
             if draw:

@@ -5,7 +5,7 @@ class squat_logic:
         self.feedback=""# 反馈
 
     def do_squat(self,detector,img):
-        # 获取左腿或右腿的角度
+        # 调用pose_module的函数来获取左腿或右腿的角度
         # 23:左胯，25：左膝，27：左踝
         angle=detector.find_angle(img,23,25,27)
 

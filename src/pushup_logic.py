@@ -5,7 +5,7 @@ class pushup_logic:
         self.feedback=""
 
     def do_push(self,detector,img):
-        # 首先获取胳膊弯曲角度
+        # 首先调用pose_module的函数来获取胳膊弯曲角度
         # 11: 肩膀, 13: 肘部, 15: 手腕
         angle=detector.find_angle(img,11,13,15)
 
