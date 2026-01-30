@@ -2,6 +2,12 @@ import cv2
 import mediapipe as mp
 import math
 
+# 在类内部定义常用索引
+LEFT_HIP = 23
+RIGHT_HIP = 24
+LEFT_ANKLE = 27
+RIGHT_ANKLE = 28
+
 class PoseDetector:
     def __init__(self, detection_con=0.5, track_con=0.5):
         # 1. 初始化 MediaPipe 核心模型
@@ -21,7 +27,7 @@ class PoseDetector:
     def get_landmarks(self, img):
         """给成员 B 用：提取 33 个关键点的像素坐标"""
         self.lm_list = []
-        if self.results.pose_landmarks:
+        if self.results and self.results.pose_landmarks:
             for id, lm in enumerate(self.results.pose_landmarks.landmark):
                 h, w, c = img.shape
                 # 将 0-1 的相对比例换算成实际像素坐标
@@ -44,6 +50,7 @@ class PoseDetector:
             if angle > 180: angle = 360 - angle
 
             # 在图上画出角度值，增加专业感
+            # 在图上画出角度值
             if draw:
                 cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50),
                             cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
