@@ -1,56 +1,66 @@
-🏃‍♂️ AI 智能跳绳计数助手 (JumpRopeCounter)
-本项目是一款基于 MediaPipe Pose 姿态估计技术的智能跳绳计数应用。通过摄像头实时捕捉人体关键点，自动计算跳绳次数、运动时长，并提供实时反馈。
+AI 健身助手 (AI Fitness Assistant)
+这是一个基于 Python Flask 和 MediaPipe 开发的实时健身监测系统。系统通过电脑摄像头捕捉人体骨骼关键点，实时计算动作角度或位移，实现深蹲、俯卧撑和跳绳的自动计数与动作反馈。
 
-🛠️ 技术栈
-核心算法: Python 3.x + MediaPipe (姿态检测)
+🌟 核心功能
+多模式运动监测：
 
-视频处理: OpenCV
+深蹲 (Squat)：监测膝盖弯曲角度，确保动作标准。
 
-交互界面: Streamlit (基于 Web 的快速前端框架)
+俯卧撑 (Pushup)：监测手臂肘部角度。
 
-环境管理: Virtualenv (venv)
+跳绳 (JumpRope)：基于脚踝 Y 轴位移的智能自适应计数。
 
-📂 项目结构说明
-app.py: [前端/集成] Streamlit 界面逻辑，负责展示视频流和 UI 交互。
+实时反馈系统：网页端实时显示当前运动计数（Total Count）和动作状态反馈（如 "READY"、"Go Down!" 等）。
 
-pose_module.py: [核心算法] 封装 MediaPipe 检测类，输出人体关键点坐标。
+交互式 Web 界面：支持一键开启摄像头、动态切换运动模式以及安全关闭系统。
 
-counter_logic.py: [计数逻辑] 基于坐标高度变化判定跳绳动作并计数。
+双版本支持：提供本地直接运行的调试版本 (local_app.py) 和基于 Web 浏览器的完整版 (web_app.py)。
 
-config.py: [配置中心] 存放视频分辨率、判定阈值等参数。
+🛠️ 环境要求
+Python: 3.10+ (推荐)
 
-requirements.txt: [环境清单] 列出了运行本项目所需的依赖包。
+主要依赖库：
 
-🚀 开发者安装指南 (组员必看)
-如果你是第一次参与本项目开发，请按照以下步骤配置环境：
+mediapipe==0.10.9 (用于人体姿态识别)
 
-克隆项目：
+opencv-python (用于视频流处理)
 
-Bash
+flask (用于构建 Web 后端)
 
-git clone [你的仓库链接]
-创建并激活虚拟环境 (在 PyCharm 中通常会自动完成)：
-
-Bash
-
-python -m venv .venv
-一键安装依赖： 在 PyCharm 的终端 (Terminal) 中输入：
+🚀 快速启动
+1. 安装依赖
+在项目根目录下打开终端，运行：
 
 Bash
-
 pip install -r requirements.txt
-注：如果下载过慢，请使用镜像源： pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-启动程序： 在终端输入以下命令启动网页：
+2. 启动程序
+运行 Web 版本：
 
 Bash
+python web_app.py
+3. 访问系统
+在浏览器中输入 http://127.0.0.1:5000。
 
-streamlit run ui/app.py
-👥 小组分工
-成员 A (组长): 负责总体架构搭建、pose_module.py 核心引擎开发。
+点击页面上的 "开启摄像头" 按钮并授权访问。
 
-成员 B: 负责 counter_logic.py 计数算法实现及逻辑测试。
+选择你想要的运动模式，开始健身！
 
-成员 C: 负责 app.py 前端界面设计与用户交互优化。
+📂 项目结构
+Plaintext
+JumpRopeCounter/
+├── src/                    # 核心逻辑模块
+│   ├── pose_module.py      # MediaPipe 姿态检测封装
+│   ├── squat_logic.py      # 深蹲计数算法
+│   ├── pushup_logic.py     # 俯卧撑计数算法
+│   └── counter_logic.py    # 跳绳计数与自适应校准算法
+├── templates/              # 网页模板
+│   └── index.html          # 前端交互界面
+├── web_app.py              # Flask Web 服务器启动文件
+├── local_app.py            # 本地 OpenCV 窗口调试文件
+└── requirements.txt        # 项目依赖清单
+⚠️ 使用注意事项
+光线与环境：请确保光线充足，并让摄像头能够完整捕捉到全身（特别是深蹲和跳绳模式下的脚踝部分）。
 
-成员 D: 负责 环境配置管理、集成测试及文档撰写。
+安全关闭：请使用网页上的 "退出程序" 按钮关闭系统，这会自动释放摄像头硬件资源并停止 Python 进程。
+
+Debug 模式：本系统在 web_app.py 中默认关闭了 debug 模式，以防止多个进程竞争同一个摄像头资源。
