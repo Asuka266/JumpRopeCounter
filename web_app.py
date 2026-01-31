@@ -43,6 +43,11 @@ def get_video_stream():
         # 调用MediaPipe识别骨骼点
         frame = moniter.find_pose(frame)
         landmarks = moniter.get_landmarks(frame)
+        # 绘制一个半透明的引导框
+        h, w = 720, 1080
+        cv2.rectangle(frame, (int(w * 0.2), int(h * 0.1)), (int(w * 0.8), int(h * 0.9)), (255, 255, 255), 1)
+        cv2.putText(frame, "请在指定区域内健身！", (int(w * 0.35), int(h * 0.05)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
 
         # 核心逻辑判断
         if len(landmarks) > 0:
