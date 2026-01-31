@@ -1,13 +1,17 @@
 class pushup_logic:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.state="up"# 初始状态
         self.count=0# 初始俯卧撑数量
-        self.feedback=""
+        self.feedback="READY"
 
     def do_push(self,detector,img):
         # 首先调用pose_module的函数来获取胳膊弯曲角度
         # 11: 肩膀, 13: 肘部, 15: 手腕
         angle=detector.find_angle(img,11,13,15)
+        if angle == 0: return self.count, "尚未开始..."  # 未检测到角度
 
         # 判断是否成功做了一个俯卧撑
         if angle<90:

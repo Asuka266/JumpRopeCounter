@@ -3,158 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JumpRopeCounter - 实时健身监测</title>
+    <title>AI 健身助手</title>
     <style>
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --accent-color: #38bdf8;
-            --success-color: #22c55e;
-            --warning-color: #f59e0b;
         }
 
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-color);
             color: white;
+            font-family: sans-serif;
             overflow: hidden;
         }
 
-        /* 成员 C 要求的布局：左右分割 */
+        /* 强制左右布局 */
         .container {
             display: flex;
-            height: 100vh;
             width: 100vw;
+            height: 100vh;
         }
 
-        /* 左侧：视频流区域 */
-        .video-container {
-            flex: 1.4;
+        /* 左侧视频区域：保持 16:9 或填充空间 */
+        .video-section {
+            flex: 1.5;
             background-color: #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
             border-right: 2px solid #334155;
         }
 
         #video-feed {
-            height: 90%;
-            width: auto;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* 确保画面不缩放变形 */
         }
 
-        /* 右侧：大数字展示区域 */
-        .stats-container {
-            flex: 0.6;
+        /* 右侧数据区域 */
+        .stats-section {
+            flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             background-color: var(--card-bg);
-            padding: 40px;
+            padding: 20px;
         }
 
-        .label {
-            font-size: 1.5rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: -10px;
-        }
+        .label { font-size: 1.2rem; color: #94a3b8; }
 
-        /* 成员 C 要求：大字体显示数字 */
         #count-display {
-            font-size: 15rem;
+            font-size: 10rem;
             font-weight: 900;
             color: var(--accent-color);
-            line-height: 1;
-            margin: 20px 0;
-            font-variant-numeric: tabular-nums;
-            text-shadow: 0 10px 15px rgba(0,0,0,0.2);
+            margin: 10px 0;
         }
 
-        /* 反馈系统样式 */
         #feedback-msg {
-            font-size: 2.5rem;
-            font-weight: 700;
-            padding: 15px 40px;
-            border-radius: 100px;
-            transition: all 0.3s ease;
-            text-align: center;
+            font-size: 2rem;
+            padding: 10px 30px;
+            border: 2px solid var(--accent-color);
+            border-radius: 50px;
+            margin-bottom: 30px;
         }
 
-        .status-active {
-            background-color: rgba(34, 197, 94, 0.15);
-            color: var(--success-color);
-            border: 3px solid var(--success-color);
+        /* 按钮样式 */
+        .btn-group { display: flex; gap: 10px; }
+        button {
+            padding: 10px 20px;
+            background: #334155;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
         }
-
-        .status-paused {
-            background-color: rgba(245, 158, 11, 0.15);
-            color: var(--warning-color);
-            border: 3px solid var(--warning-color);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        button:hover { background: var(--accent-color); }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- 左侧：实时视频流 (OpenCV Numpy 数组转换后的结果) -->
-        <div class="video-container">
-            <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Camera Feed">
-        </div>
+        <div class="video-section">
+    <img id="video-feed" src="" alt="请先开启摄像头" style="display: none;">
 
-        <!-- 右侧：数据与反馈 -->
-        <div class="stats-container">
-            <div class="label">Total Count</div>
+    <div id="camera-controls" style="text-align: center;">
+        <p style="color: #94a3b8; margin-bottom: 20px;">准备好开始健身了吗？</p>
+        <button id="start-btn" onclick="initCamera()"
+                style="padding: 15px 40px; font-size: 1.2rem; background-color: #10b981;">
+            开启摄像头
+        </button>
+    </div>
+</div>
+
+        <div class="stats-section">
+            <div id="mode-label" style="font-size: 1.5rem; color: #38bdf8; margin-bottom: 10px; font-weight: bold;">
+        当前模式: 加载中...</div>
+            <div class="label">当前计数</div>
             <div id="count-display">0</div>
+            <div id="feedback-msg">READY</div>
 
-            <!-- 反馈系统提示 -->
-            <div id="feedback-msg" class="status-active">READY</div>
+            <div class="btn-group">
+                <button onclick="changeMode(1)">深蹲</button>
+                <button onclick="changeMode(2)">俯卧撑</button>
+                <button onclick="changeMode(3)">跳绳</button>
+                <button onclick="terminateSystem()" style="background-color: #ef4444;">退出程序</button>
+            </div>
         </div>
     </div>
 
     <script>
-        /**
-         * 实时刷新：通过轮询后端 /get_stats 接口获取成员 B 计算的数据
-         */
-        function updateDashboard() {
-            fetch('/get_stats')
-                .then(response => response.json())
-                .then(data => {
-                    // 更新数字
-                    const countEl = document.getElementById('count-display');
-                    countEl.innerText = data.count;
+        function initCamera() {
+    // 1. 请求权限
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            console.log("授权成功");
+            // 停止权限检测流，释放硬件
+            stream.getTracks().forEach(track => track.stop());
 
-                    // 更新反馈系统内容与样式
-                    const feedbackEl = document.getElementById('feedback-msg');
+            // 2. 隐藏按钮，显示视频标签
+            document.getElementById('camera-controls').style.display = 'none';
+            const videoImg = document.getElementById('video-feed');
+            videoImg.style.display = 'block';
 
-                    // 对齐成员 B 可能传回的状态信号
-                    if (data.status === "Keep going!" || data.status === "active") {
-                        feedbackEl.innerText = "Keep going!";
-                        feedbackEl.className = "status-active";
-                    } else {
-                        feedbackEl.innerText = data.status || "Paused";
-                        feedbackEl.className = "status-paused";
-                    }
-                })
-                .catch(err => console.error("Error fetching stats:", err));
+            // 3. 设置后端视频流地址 (对应 Python 中的 video_display 函数)
+            videoImg.src = "{{ url_for('video_display') }}";
+
+            // 4. 开启数据轮询
+            setInterval(updateStats, 200);
+        })
+        .catch(function(err) {
+            alert("无法访问摄像头，请检查权限设置！");
+        });
+}
+
+// 注意：删掉 window.onload 里的自动请求，改为手动触发
+        function terminateSystem() {
+    if (confirm("确定要关闭健身助手并释放摄像头吗？")) {
+        fetch('/shutdown', { method: 'POST' })
+            .then(response => {
+                // 后端关闭后，前端跳转到一个简单的提示页或直接清空内容
+                document.body.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#0f172a; color:white;">
+                        <h1 style="color:#38bdf8;">系统已安全退出</h1>
+                        <p>摄像头硬件已释放，您可以安全关闭此窗口。</p>
+                        <button onclick="window.location.reload()" style="padding:10px 20px; background:#334155; color:white; border:none; border-radius:5px; cursor:pointer;">重新启动</button>
+                    </div>
+                `;
+            })
+            .catch(err => {
+                // 即使 fetch 报错（因为后端瞬间自杀了），也显示退出界面
+                console.log("后端已停止运行");
+                document.body.innerHTML = "<div style='text-align:center; margin-top:20%; color:white;'><h1>系统已关闭</h1><p>请手动关闭浏览器标签页。</p></div>";
+            });
+    }
+}
+        function updateStats() {
+    fetch('/get_stats')
+        .then(res => res.json())
+        .then(data => {
+            // 更新模式文字
+            document.getElementById('mode-label').innerText = "当前模式: " + data.mode;
+            // 更新数字和状态
+            document.getElementById('count-display').innerText = data.count;
+            document.getElementById('feedback-msg').innerText = data.status;
+        })
+        .catch(e => console.log("等待数据..."));
+}
+
+        function changeMode(m) {
+            fetch(`/change_mode?m=${m}`).then(() => {
+                document.getElementById('count-display').innerText = '0';
+            });
         }
 
-        // 每 100 毫秒刷新一次数据，确保数字与视频流同步
-        setInterval(updateDashboard, 100);
     </script>
 </body>
 </html>
