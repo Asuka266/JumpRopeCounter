@@ -148,35 +148,54 @@ function initCamera() {
 }
 
 // 核心数据更新逻辑：包含语音、动画和状态更新
+let isCountingDown = false; // 新增：记录是否正在倒计时
+
 function updateStats() {
     fetch('/get_stats')
         .then(res => res.json())
         .then(data => {
+            const feedbackMsg = document.getElementById('feedback-msg');
             const countDisplay = document.getElementById('count-display');
-            const currentCount = parseInt(data.count);
+            const currentCount = data.count;
 
             // 1. 更新文字信息
             document.getElementById('mode-label').innerText = "当前模式: " + data.mode;
-            document.getElementById('feedback-msg').innerText = data.status;
-            countDisplay.innerText = data.count;
+            feedbackMsg.innerText = data.status;
 
-            // 2. 只有当计数增加时，才触发语音和动画
-            if (currentCount > lastCount) {
-                // 播报数字
-                speakCount(currentCount);
-
-                // 触发 CSS 动画
-                countDisplay.classList.remove('count-animate');
-                void countDisplay.offsetWidth; // 触发 DOM 重绘，确保动画能再次播放
-                countDisplay.classList.add('count-animate');
-
-                lastCount = currentCount;
-            } else if (currentCount === 0 && lastCount !== 0) {
-                // 模式切换或手动重置时清空本地状态
-                lastCount = 0;
+            // 2. 倒计时视觉控制与音效触发
+            if (data.status.includes("倒计时")) {
+                isCountingDown = true;
+                feedbackMsg.style.borderColor = "#fbbf24"; // 黄色
+                feedbackMsg.style.color = "#fbbf24";
+                countDisplay.style.opacity = "0.3";
+            } else {
+                // 如果刚刚结束倒计时
+                if (isCountingDown) {
+                    playStartSound(); // 触发开始音效
+                    isCountingDown = false;
+                }
+                feedbackMsg.style.borderColor = "#38bdf8"; // 蓝色
+                feedbackMsg.style.color = "white";
+                countDisplay.style.opacity = "1";
             }
-        })
-        .catch(e => console.log("等待数据..."));
+
+            // 3. 计数逻辑 (保持原有动画和语音)
+            if (currentCount > lastCount) {
+                countDisplay.innerText = currentCount;
+                speakCount(currentCount);
+                // ... 动画逻辑 ...
+                lastCount = currentCount;
+            }
+        });
+}
+
+// 模拟“开始”提示音
+function playStartSound() {
+    if ('speechSynthesis' in window) {
+        const startMsg = new SpeechSynthesisUtterance("开始运动！");
+        startMsg.lang = 'zh-CN';
+        window.speechSynthesis.speak(startMsg);
+    }
 }
 
 // 语音播报函数

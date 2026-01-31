@@ -14,7 +14,8 @@ moniter = pose_detector(detection_con=0.7, track_con=0.7)
 squat_tool = squat_logic()
 push_tool = pushup_logic()
 jump_tool = CounterLogic(image_height=720)
-
+mode_switch_time = 0
+DELAY_SECONDS = 10
 # 默认模式为跳绳
 current_mode = "Jump"
 
@@ -26,7 +27,7 @@ def get_video_stream():
     p_time = 0
     # 声明使用外部的全局变量
     global video_cap
-
+    global video_cap, mode_switch_time
     while True:
         ret, frame = video_cap.read()
         if not ret:
@@ -46,23 +47,33 @@ def get_video_stream():
         # 绘制一个半透明的引导框
         h, w = 720, 1080
         cv2.rectangle(frame, (int(w * 0.2), int(h * 0.1)), (int(w * 0.8), int(h * 0.9)), (255, 255, 255), 1)
-        cv2.putText(frame, "请在指定区域内健身！", (int(w * 0.35), int(h * 0.05)),
+        cv2.putText(frame, "Please stay inside the frame!", (int(w * 0.35), int(h * 0.05)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
 
         # 核心逻辑判断
         if len(landmarks) > 0:
-            if current_mode == "Jump":
-                count, is_paused, msg = jump_tool.update(landmarks)
-                show_color = (0, 165, 255)  # 橘黄色
-            elif current_mode == "Squat":
-                count, msg = squat_tool.do_squat(moniter, frame)
-                show_color = (255, 0, 0)  # 蓝色
-            elif current_mode == "Pushup":
-                count, msg = push_tool.do_push(moniter, frame)
-                show_color = (0, 255, 0)  # 绿色
+            elapsed = time.time() - mode_switch_time
+
+            if elapsed < DELAY_SECONDS:
+                # 还在倒计时阶段
+                countdown = int(DELAY_SECONDS - elapsed)
+                count = 0
+                msg = f"准备开始... {countdown}s"
+                show_color = (0, 255, 255)  # 黄色提示
             else:
-                count, msg = 0, "Unknown Mode"
-                show_color = (255, 255, 255)
+                # 倒计时结束，正常执行逻辑
+                if current_mode == "Jump":
+                    count, is_paused, msg = jump_tool.update(landmarks)
+                    show_color = (0, 165, 255)
+                elif current_mode == "Squat":
+                    count, msg = squat_tool.do_squat(moniter, frame)
+                    show_color = (255, 0, 0)
+                elif current_mode == "Pushup":
+                    count, msg = push_tool.do_push(moniter, frame)
+                    show_color = (0, 255, 0)  # 绿色
+                else:
+                    count, msg = 0, "Unknown Mode"
+                    show_color = (255, 255, 255)
 
             # UI绘制
             cv2.putText(frame, f"Mode: {current_mode}", (50, 60),
@@ -99,24 +110,35 @@ def video_display():
 
 @app.route('/get_stats')
 def get_stats():
+    elapsed = time.time() - mode_switch_time
+    if elapsed < DELAY_SECONDS:
+        return jsonify({
+            "mode": f"准备中 ({current_mode})",
+            "count": 0,
+            "status": f"倒计时: {int(DELAY_SECONDS - elapsed)}s",
+            "is_counting": False
+        })
     # 根据当前模式动态获取数据
     if current_mode == "Jump":
         return jsonify({
             "mode": "跳绳模式",
             "count": jump_tool.jump_count,
-            "status": "Jump!" if jump_tool.state == 'air' else "Steady"
+            "status": jump_tool.feedback,
+            "is_counting": True
         })
     elif current_mode == "Squat":
         return jsonify({
             "mode": "深蹲模式",
             "count": squat_tool.count,
-            "status": squat_tool.feedback
+            "status": squat_tool.feedback,
+            "is_counting": True
         })
     elif current_mode == "Pushup":
         return jsonify({
             "mode": "俯卧撑模式",
             "count": push_tool.count,
-            "status": push_tool.feedback
+            "status": push_tool.feedback,
+            "is_counting": True
         })
     return jsonify({"mode": "等待中", "count": 0, "status": "Ready"})
 
@@ -125,6 +147,11 @@ def get_stats():
 def change_mode():
     global current_mode
     m = request.args.get('m')
+    global current_mode, mode_switch_time  # 引入全局变量
+    m = request.args.get('m')
+
+    # 记录切换模式的瞬间
+    mode_switch_time = time.time()
     # 切换模式时调用reset避免计数重叠
     if m == '1':
         current_mode = "Squat"
