@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 健身助手</title>
     <style>
+        @keyframes bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #10b981; }
+    100% { transform: scale(1); }
+}
+
+.count-animate {
+    animation: bump 0.3s ease-out;
+}
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -117,24 +126,20 @@
         </div>
     </div>
 
-    <script>
-        function initCamera() {
-    // 1. 请求权限
+<script>
+let lastCount = 0;
+
+// 初始化摄像头并启动轮询
+function initCamera() {
     navigator.mediaDevices.getUserMedia({ video: true })
         .then(function(stream) {
-            console.log("授权成功");
-            // 停止权限检测流，释放硬件
-            stream.getTracks().forEach(track => track.stop());
-
-            // 2. 隐藏按钮，显示视频标签
+            stream.getTracks().forEach(track => track.stop()); // 仅检测权限
             document.getElementById('camera-controls').style.display = 'none';
             const videoImg = document.getElementById('video-feed');
             videoImg.style.display = 'block';
+            videoImg.src = "{{ url_for('video_display') }}"; // 获取后端流
 
-            // 3. 设置后端视频流地址 (对应 Python 中的 video_display 函数)
-            videoImg.src = "{{ url_for('video_display') }}";
-
-            // 4. 开启数据轮询
+            // 开启数据轮询，每 200ms 获取一次后端状态
             setInterval(updateStats, 200);
         })
         .catch(function(err) {
@@ -142,46 +147,76 @@
         });
 }
 
-// 注意：删掉 window.onload 里的自动请求，改为手动触发
-        function terminateSystem() {
-    if (confirm("确定要关闭健身助手并释放摄像头吗？")) {
-        fetch('/shutdown', { method: 'POST' })
-            .then(response => {
-                // 后端关闭后，前端跳转到一个简单的提示页或直接清空内容
-                document.body.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#0f172a; color:white;">
-                        <h1 style="color:#38bdf8;">系统已安全退出</h1>
-                        <p>摄像头硬件已释放，您可以安全关闭此窗口。</p>
-                        <button onclick="window.location.reload()" style="padding:10px 20px; background:#334155; color:white; border:none; border-radius:5px; cursor:pointer;">重新启动</button>
-                    </div>
-                `;
-            })
-            .catch(err => {
-                // 即使 fetch 报错（因为后端瞬间自杀了），也显示退出界面
-                console.log("后端已停止运行");
-                document.body.innerHTML = "<div style='text-align:center; margin-top:20%; color:white;'><h1>系统已关闭</h1><p>请手动关闭浏览器标签页。</p></div>";
-            });
-    }
-}
-        function updateStats() {
+// 核心数据更新逻辑：包含语音、动画和状态更新
+function updateStats() {
     fetch('/get_stats')
         .then(res => res.json())
         .then(data => {
-            // 更新模式文字
+            const countDisplay = document.getElementById('count-display');
+            const currentCount = parseInt(data.count);
+
+            // 1. 更新文字信息
             document.getElementById('mode-label').innerText = "当前模式: " + data.mode;
-            // 更新数字和状态
-            document.getElementById('count-display').innerText = data.count;
             document.getElementById('feedback-msg').innerText = data.status;
+            countDisplay.innerText = data.count;
+
+            // 2. 只有当计数增加时，才触发语音和动画
+            if (currentCount > lastCount) {
+                // 播报数字
+                speakCount(currentCount);
+
+                // 触发 CSS 动画
+                countDisplay.classList.remove('count-animate');
+                void countDisplay.offsetWidth; // 触发 DOM 重绘，确保动画能再次播放
+                countDisplay.classList.add('count-animate');
+
+                lastCount = currentCount;
+            } else if (currentCount === 0 && lastCount !== 0) {
+                // 模式切换或手动重置时清空本地状态
+                lastCount = 0;
+            }
         })
         .catch(e => console.log("等待数据..."));
 }
 
-        function changeMode(m) {
-            fetch(`/change_mode?m=${m}`).then(() => {
-                document.getElementById('count-display').innerText = '0';
-            });
-        }
+// 语音播报函数
+function speakCount(text) {
+    if ('speechSynthesis' in window) {
+        // 先取消当前正在说的，防止报数重叠
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text.toString());
+        msg.lang = 'zh-CN';
+        msg.rate = 1.3; // 语速稍快更清脆
+        window.speechSynthesis.speak(msg);
+    }
+}
 
-    </script>
+// 切换运动模式
+function changeMode(m) {
+    fetch(`/change_mode?m=${m}`).then(() => {
+        lastCount = 0; // 重置本地记录，防止跨模式报数错误
+        document.getElementById('count-display').innerText = '0';
+        document.getElementById('count-display').classList.remove('count-animate');
+    });
+}
+
+// 退出系统
+function terminateSystem() {
+    if (confirm("确定要关闭健身助手并释放摄像头吗？")) {
+        fetch('/shutdown', { method: 'POST' })
+            .then(() => {
+                document.body.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#0f172a; color:white;">
+                        <h1 style="color:#38bdf8;">系统已安全退出</h1>
+                        <p>摄像头硬件已释放。</p>
+                        <button onclick="window.location.reload()" style="padding:10px 20px; background:#334155; color:white; border:none; border-radius:5px; cursor:pointer;">重新启动</button>
+                    </div>`;
+            })
+            .catch(() => {
+                document.body.innerHTML = "<div style='text-align:center; margin-top:20%; color:white;'><h1>系统已关闭</h1></div>";
+            });
+    }
+}
+</script>
 </body>
 </html>
