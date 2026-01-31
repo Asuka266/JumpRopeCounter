@@ -90,6 +90,15 @@ def video_display():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+@app.route('/get_stats')
+def get_stats():
+    # 假设你的 counter 对象里存储着这些信息
+    return jsonify({
+        "count": counter.counter,       # 对应 HTML 中的 data.count
+        "status": counter.status_text   # 对应 HTML 中的 data.status
+    })
+
+
 @app.route('/change_mode')
 def change_mode():
     global current_mode
